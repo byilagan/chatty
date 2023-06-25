@@ -1,35 +1,53 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+// Libs
+import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider } from "react-router-dom"; 
+import { useContext, useEffect } from "react";
+import { useQuery } from "react-query";
+
+// Styles
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+// Pages
+import { Home } from "./pages/Home/Home";
+import { Auth } from './pages/Auth/Auth';
+import { Chat } from "./pages/Chat/Chat";
+import { Logout } from "./pages/Logout/Logout";
 
-  return (
+// Components
+import { Protected } from "./components/Routes/Protected";
+
+// Context
+import { UserContext } from "./context/User/UserContext";
+
+// Services
+import { validateSession } from "./services/auth";
+
+const router = createBrowserRouter(
+  createRoutesFromElements(
     <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <Route path="/login" element={<Auth isLogin/>}/>
+      <Route path="/signup" element={<Auth isLogin={false}/>}/> 
+      <Route path="/logout" element={<Logout />} />
+      <Route element={<Protected/>}>
+        <Route path="/" element={<Home />}/>
+        <Route path="/chat" element={<Chat/>}/>
+      </Route>
     </>
   )
+); 
+
+function App() {
+  const { setUser, user } = useContext(UserContext);  
+  const { data, status } = useQuery("session", validateSession, { enabled: !user, cacheTime: 1}); 
+
+  useEffect(() => {
+    if (status === "success" && data?.id) {
+      setUser?.(data); 
+    }
+  }, [ data, status, setUser ])
+
+  if ((status === "loading" || !user) && !data?.error) return <p>Loading...</p>; 
+
+  return <RouterProvider router={router}/>; 
 }
 
 export default App
